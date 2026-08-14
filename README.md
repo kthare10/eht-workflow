@@ -98,5 +98,6 @@ without Pegasus (inside the ehtim container or a matching venv).
 Apache License 2.0 (see `LICENSE`) for everything written for this project
 (`workflow_generator.py`, `bin/`, `Docker/`, scripts, documentation).
 The vendored EHT pipeline files in `eht-pipelines/` are the EHT
-Collaboration's own and remain under **GPLv3** per their headers
-(see `eht-pipelines/PROVENANCE.md`).
+Collaboration's own and remain under **GPLv3** per their headers — the
+full GPLv3 text is included at `eht-pipelines/LICENSE` as its terms
+require (see `eht-pipelines/PROVENANCE.md` for origin and pinning).

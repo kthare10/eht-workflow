@@ -7,7 +7,7 @@ SPEC.md §2). Do not modify them; wrappers in `bin/` adapt around them.
 - **Source repository**: https://github.com/eventhorizontelescope/2019-D01-02
 - **Commit**: `80d230e76c08edd31548e7cfe61dc7cf94300780`
 - **Vendored on**: 2026-08-12
-- **License**: GPLv3 (per the headers in the EHT scripts)
+- **License**: GPLv3 (per the headers in the EHT scripts; full text in `LICENSE` in this directory)
 
 | File | Origin path in source repo | Role |
 |---|---|---|
