@@ -1,0 +1,44 @@
+# DIFMAP container for the EHT M87 workflow (CLEAN imaging pipeline).
+# Builds Caltech DIFMAP from source (SPEC.md allowed source §2).
+#
+# Build:  docker build -t kthare10/eht-difmap:latest -f Docker/Difmap_Dockerfile .
+#
+# NOTE: the tarball is only served over ftp:// (the HTTPS mirror 404s).
+# Check ftp://ftp.astro.caltech.edu/pub/difmap/ for the current version
+# letter (EHT requires >= 2.5b) and bump DIFMAP_VERSION if the download
+# fails. 2.5r verified present on 2026-08-12.
+
+FROM ubuntu:22.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PYTHONUNBUFFERED=1
+
+# pgplot5 (multiverse) provides the libpgplot/libcpgplot that difmap links
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        build-essential gfortran \
+        libx11-dev libncurses-dev \
+        expect curl ca-certificates \
+        python3 \
+    && (apt-get install -y --no-install-recommends pgplot5 || \
+        (sed -i "s/ universe/ universe multiverse/g" /etc/apt/sources.list && \
+         apt-get update && \
+         apt-get install -y --no-install-recommends pgplot5)) \
+    && rm -rf /var/lib/apt/lists/* \
+    && ln -sf /usr/bin/python3 /usr/bin/python
+
+ENV PGPLOT_DIR=/usr/lib/pgplot5
+ENV PGPLOT_FONT=/usr/lib/pgplot5/grfont.dat
+
+ARG DIFMAP_VERSION=2.5r
+RUN curl -fsSL "ftp://ftp.astro.caltech.edu/pub/difmap/difmap${DIFMAP_VERSION}.tar.gz" \
+        -o /tmp/difmap.tar.gz && \
+    tar -xzf /tmp/difmap.tar.gz -C /opt && \
+    cd /opt/uvf_difmap* && \
+    ./configure linux-i486-gcc && \
+    ./makeall && \
+    cp difmap /usr/local/bin/difmap && \
+    rm /tmp/difmap.tar.gz
+
+# Sanity check: difmap starts and exits
+RUN printf 'exit\n\n' | difmap || true

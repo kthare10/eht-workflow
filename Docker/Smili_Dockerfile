@@ -1,0 +1,104 @@
+# SMILI container for the EHT M87 workflow (RML imaging pipeline).
+# Builds SMILI from source (astrosmili/smili, SPEC.md allowed source §2).
+# The EHT's smili_imaging_pipeline.py also imports ehtim for pre-imaging
+# calibration, so eht-imaging v1.1.0 is installed too.
+#
+# Build:  docker build -t kthare10/eht-smili:latest -f Docker/Smili_Dockerfile .
+#
+# NOTE: SMILI v0.0.0 (Zenodo 2616725) targeted Python 2.7. Getting the
+# fiducial script running may require a newer SMILI ref under Python 3 —
+# record whatever ref actually works in COMPARISON.md (SPEC.md N3).
+
+FROM python:3.8-bullseye
+
+ENV PYTHONUNBUFFERED=1
+ENV MPLBACKEND=Agg
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        git build-essential gfortran curl ca-certificates \
+        libopenblas-dev liblapack-dev libfftw3-dev \
+        autoconf automake libtool pkg-config \
+    && rm -rf /var/lib/apt/lists/*
+
+# NFFT 3.2.4 from source: pynfft 1.3.2 needs nfft3util.h, which NFFT >= 3.3
+# (and thus Debian's libnfft3-dev) no longer ships.
+RUN curl -fsSL https://github.com/NFFT/nfft/releases/download/3.2.4/nfft-3.2.4.tar.gz \
+        -o /tmp/nfft.tar.gz || \
+    curl -fsSL https://www-user.tu-chemnitz.de/~potts/nfft/download/nfft-3.2.4.tar.gz \
+        -o /tmp/nfft.tar.gz; \
+    tar xzf /tmp/nfft.tar.gz -C /opt && \
+    cd /opt/nfft-3.2.4 && \
+    ./configure --enable-openmp && \
+    make -j"$(nproc)" && make install && ldconfig && \
+    rm /tmp/nfft.tar.gz
+
+RUN pip install --no-cache-dir \
+        numpy==1.21.6 \
+        scipy==1.5.4 \
+        matplotlib==3.5.3 \
+        astropy==4.3.1 \
+        pandas==1.3.5 \
+        h5py==3.7.0 \
+        ephem==4.1.4 \
+        scikit-image==0.19.3 \
+        xarray==0.20.2 \
+        tqdm \
+        future \
+        theano==1.0.5 \
+        ipython==8.12.2
+
+# The EHT SMILI pipeline calls ehtim with ttype='nfft' (line 276), so
+# pynfft is required here too (built against the apt nfft3/fftw3 libs).
+RUN pip install --no-cache-dir "cython<3.0" && \
+    pip install --no-cache-dir --no-build-isolation pynfft==1.3.2
+
+ARG EHTIM_REF=v1.1.0
+RUN pip install --no-cache-dir \
+        "git+https://github.com/achael/eht-imaging.git@${EHTIM_REF}"
+
+# ehtim v1.1.0 ships residual Python-2 print statements; fix mechanically.
+RUN 2to3 -f print -f except -f raise -f exec -f ne -f numliterals -f repr -w -n /usr/local/lib/python3.8/site-packages/ehtim > /dev/null 2>&1 && \
+    python -m compileall -q /usr/local/lib/python3.8/site-packages/ehtim
+
+# SMILI's installer resolves its dependencies via easy_install, which can
+# no longer reach PyPI reliably — pre-install every declared dependency
+# (setup.py at v0.0.0: future numpy scipy matplotlib pandas xarray
+# scikit-image astropy tqdm sympy theano pymc3 pyds9; the rest are pinned
+# above). pymc3 3.9.3 is the last line that uses theano 1.0.x.
+RUN pip install --no-cache-dir pyds9==1.8.1 sympy==1.10.1 pymc3==3.9.3
+
+# SMILI's Fortran build uses numpy.distutils (f2py), which breaks under
+# setuptools >= 60 (distutils.msvccompiler removed from the shim).
+ENV SETUPTOOLS_USE_DISTUTILS=stdlib
+RUN pip install --no-cache-dir "setuptools<60"
+
+# make install builds fortlib and installs the smili egg, then walks the
+# dependency graph with easy_install, which fails wanting setuptools>=60
+# (conflicts with the <60 pin f2py needs) — every dependency is already
+# pre-installed above, so tolerate that exit; the import check below is
+# the real gate.
+ARG SMILI_REF=v0.0.0
+RUN git clone https://github.com/astrosmili/smili.git /opt/smili && \
+    cd /opt/smili && \
+    git checkout "${SMILI_REF}" && \
+    ./configure && \
+    (make install || echo "make install post-install dependency walk failed; egg installed, verified below")
+
+# SMILI v0.0.0 is Python-2-era; convert with the full default 2to3 fixer
+# set — syntax-only fixers leave runtime NameErrors (xrange, iteritems, ...)
+# that compileall cannot catch. Path is located on the filesystem since py2
+# syntax could block the import.
+RUN SMILI_PKG=$(find /usr/local/lib/python3.8/site-packages -maxdepth 3 -type d -name smili | head -1) && \
+    test -n "$SMILI_PKG" && \
+    2to3 -w -n "$SMILI_PKG" > /dev/null 2>&1 && \
+    python -m compileall -q "$SMILI_PKG"
+
+# The SMILI/ehtim uvfits-save path builds astropy Time objects with
+# out_subfmt='date' and then reads .jd; astropy >= 4.0 validates subfmt on
+# both construction and to_value and rejects it. Pin the 3.x contemporary
+# with ehtim v1.1.0 (no subfmt validation). Source build — no cp38 wheel.
+RUN pip install --no-cache-dir astropy==3.2.3
+
+# Sanity check (SMILI itself + the NFFT support its pipeline needs via ehtim)
+RUN python -c "import pynfft; from smili import uvdata, imdata, imaging, util; print('smili ok')"

@@ -1,0 +1,4 @@
+run0015
+/home/cc/eht-workflow/cc/pegasus/eht-m87/run0015
+root_wf_uuid: "aa27ba74-a269-4941-9699-07262a60d39d"
+wf_uuid: "aa27ba74-a269-4941-9699-07262a60d39d"

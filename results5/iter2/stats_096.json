@@ -1,0 +1,58 @@
+{
+  "day": "096",
+  "date": "April 6",
+  "systematic": 0.0,
+  "recipe": "scan-avg, add_zblterm, cp_uv_min=0.1e9, snrcut=0",
+  "images": {
+    "difmap_lo": {
+      "fits": "difmap_096_lo.fits",
+      "chisq_cphase_lo": 2.8417722140868964,
+      "chisq_logcamp_lo": 24.428138252185096,
+      "chisq_cphase_hi": 2.082745398352319,
+      "chisq_logcamp_hi": 21.778266443716884,
+      "chisq_cphase": 2.462258806219608,
+      "chisq_logcamp": 23.10320234795099,
+      "zblterm_applied": true
+    },
+    "difmap_hi": {
+      "fits": "difmap_096_hi.fits",
+      "chisq_cphase_lo": 4.307863552115797,
+      "chisq_logcamp_lo": 29.354304036954243,
+      "chisq_cphase_hi": 2.9582777546796257,
+      "chisq_logcamp_hi": 26.227166337921783,
+      "chisq_cphase": 3.633070653397711,
+      "chisq_logcamp": 27.790735187438013,
+      "zblterm_applied": true
+    },
+    "ehtim": {
+      "fits": "ehtim_096.fits",
+      "chisq_cphase_lo": 1.033149039891582,
+      "chisq_logcamp_lo": 1.3537032029755278,
+      "chisq_cphase_hi": 1.1876764679410607,
+      "chisq_logcamp_hi": 1.0229008198292588,
+      "chisq_cphase": 1.1104127539163213,
+      "chisq_logcamp": 1.1883020114023934,
+      "zblterm_applied": true
+    },
+    "smili_lo": {
+      "fits": "smili_096_lo.fits",
+      "chisq_cphase_lo": 1.2229086067589965,
+      "chisq_logcamp_lo": 1.4362292986747145,
+      "chisq_cphase_hi": 1.4815900656375536,
+      "chisq_logcamp_hi": 1.1818782167184365,
+      "chisq_cphase": 1.352249336198275,
+      "chisq_logcamp": 1.3090537576965755,
+      "zblterm_applied": true
+    },
+    "smili_hi": {
+      "fits": "smili_096_hi.fits",
+      "chisq_cphase_lo": 1.6944267243023226,
+      "chisq_logcamp_lo": 1.7024065805640174,
+      "chisq_cphase_hi": 1.3289261701450144,
+      "chisq_logcamp_hi": 1.244601520014787,
+      "chisq_cphase": 1.5116764472236683,
+      "chisq_logcamp": 1.4735040502894021,
+      "zblterm_applied": true
+    }
+  }
+}

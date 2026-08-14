@@ -1,0 +1,40 @@
+# Ring-measurement (REx) container for the EHT M87 workflow.
+# Used by: measure_ring_rex.
+#
+# Runs ehtim.features.rex — the EHT's own image-domain ring extractor
+# (Paper IV §9.1–9.2) — on the reconstructed images. REx is image-domain
+# analysis only, so unlike the imaging container this does not need the
+# v1.1.0 era-pin or NFFT; it pins the versions used for the measurements
+# of record (COMPARISON.md §4.1): ehtim 1.3.2 with scipy < 1.14 because
+# REx uses the legacy scipy.interpolate.interp2d (pinning scipy keeps
+# the EHT code unmodified).
+#
+# Build:  docker build -t kthare10/eht-rex:latest -f Docker/Rex_Dockerfile .
+
+FROM python:3.11-slim-bullseye
+
+ENV PYTHONUNBUFFERED=1
+ENV MPLBACKEND=Agg
+
+# PegasusLite needs curl inside the container to fetch its worker package
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends curl ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+# ehtim pulls paramsurvey -> pandas-appender, a legacy setup.py package
+# whose build fetches its own deps with a 15 s pip timeout; raise the
+# timeout/retries so transient PyPI slowness doesn't kill the build.
+ENV PIP_DEFAULT_TIMEOUT=100
+ENV PIP_RETRIES=10
+
+RUN pip install --no-cache-dir \
+        "numpy==2.0.2" \
+        "scipy==1.13.1" \
+        "astropy==7.1.0" \
+        "matplotlib==3.9.2" \
+        "pandas==2.2.3" \
+        "setuptools-scm" "packaging>=20"
+
+RUN pip install --no-cache-dir "ehtim==1.3.2"
+
+# Sanity check: REx must import and interp2d must exist
+RUN python -c "import ehtim.features.rex as rex; import scipy.interpolate as si; assert hasattr(si, 'interp2d'); print('REx OK')"

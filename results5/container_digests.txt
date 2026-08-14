@@ -1,0 +1,26 @@
+# Container images of record for the five-run campaign (run0012-run0016,
+# 2026-08-14, cpegasus). The .sif files are the artifacts the workflow's
+# transformation catalog references (--sif-dir) and the jobs executed.
+#
+# Binding to the executions: Pegasus integrity checking records the
+# sha256 of every staged input -- including the containers -- in each
+# job's kickstart output at execution time. Extracting
+#   grep -rh -A3 'lfn: "eht_.*.sif"' <rundir>/00/00/*.out.000
+# from all five submit dirs (run0012..run0016) yields, in EVERY run,
+# exactly the four digests below (execution-time records, not post-hoc).
+# The same digests were independently reproduced by hashing
+# cpegasus:/home/cc/eht-workflow/containers/*.sif after the campaign.
+# Docker image IDs are of the locally built images the .sifs were
+# converted from (docker-daemon://, deploy_cpegasus.sh).
+#
+# sif sha256                                                        file
+e85b9ff8ac5bbe2af3c6f947acd2cfb212cf661cc6d815c92e56636ce9d6ac41  eht-difmap.sif
+0d88d69bf63dc1b93aca2e0bfff0518b0edbc1059a77c95bd67baa4361d3532a  eht-ehtim.sif
+a6f98abe1ce5ea1af69f6823d5cd61df438834d5b9bd86c93b51beaeb498ac8d  eht-rex.sif
+a50bafdf60a41236a6a9ded28f88f3615f36229d359695ab147d97d4e2322fb9  eht-smili.sif
+#
+# docker image IDs (source of the .sif conversions):
+# kthare10/eht-difmap:latest 0d556c17541b
+# kthare10/eht-ehtim:latest  22b42b16a802
+# kthare10/eht-smili:latest  f12547a6db3a
+# kthare10/eht-rex:latest    1ee20ee487e2

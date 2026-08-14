@@ -1,0 +1,37 @@
+# local environments and caches
+.venv/
+__pycache__/
+.DS_Store
+
+# EHT paper PDFs (copyrighted; see SPEC.md §2 for citations)
+references/
+
+# Pegasus runtime state (submit host)
+scratch/
+output/
+output_iter*/
+cc/
+workflow.yml
+braindump.yml
+pegasus.properties
+*.log
+
+# container images (built from Docker/, published to Docker Hub)
+containers/
+*.sif
+
+# superseded single-run artifacts kept locally (campaign of record: results5/)
+results/
+output.tgz
+output_stats_run0009.csv
+
+# local smoke-test scratch
+manual_test/
+
+# IDE
+.idea/
+
+# generated Pegasus catalogs
+replicas.yml
+transformations.yml
+sites.yml
