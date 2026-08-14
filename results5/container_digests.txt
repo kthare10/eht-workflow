@@ -24,3 +24,10 @@ a50bafdf60a41236a6a9ded28f88f3615f36229d359695ab147d97d4e2322fb9  eht-smili.sif
 # kthare10/eht-ehtim:latest  22b42b16a802
 # kthare10/eht-smili:latest  f12547a6db3a
 # kthare10/eht-rex:latest    1ee20ee487e2
+#
+# Docker Hub manifest digests (2026-08-14 push of these exact images,
+# streamed from the cpegasus docker daemon, not rebuilt):
+# kthare10/eht-difmap@sha256:0d556c17541bf51b93f542f83bec66417aaf034691fa0d2ba9fcb68856ddeab8
+# kthare10/eht-ehtim@sha256:22b42b16a80217ac29a07fb09d7f418891a93d2171ab55e1fd56d4993e5694e0
+# kthare10/eht-smili@sha256:f12547a6db3ac3cafc992f9f050153242e81028dc323d15934bb213531d238c9
+# kthare10/eht-rex@sha256:1ee20ee487e2570a45779e457ede93f4d8153cc0d532d69d5b360abe03b7e8ec
