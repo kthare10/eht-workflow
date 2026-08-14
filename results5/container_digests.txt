@@ -19,15 +19,26 @@ e85b9ff8ac5bbe2af3c6f947acd2cfb212cf661cc6d815c92e56636ce9d6ac41  eht-difmap.sif
 a6f98abe1ce5ea1af69f6823d5cd61df438834d5b9bd86c93b51beaeb498ac8d  eht-rex.sif
 a50bafdf60a41236a6a9ded28f88f3615f36229d359695ab147d97d4e2322fb9  eht-smili.sif
 #
-# docker image IDs (source of the .sif conversions):
+# OCI manifest digests, as reported by `docker images` on cpegasus.
+# (Both the cpegasus and publishing daemons run the containerd image
+# store, which displays the MANIFEST digest as the image "ID" — these
+# are truncated manifest digests, not classic config-blob image IDs.)
 # kthare10/eht-difmap:latest 0d556c17541b
 # kthare10/eht-ehtim:latest  22b42b16a802
 # kthare10/eht-smili:latest  f12547a6db3a
 # kthare10/eht-rex:latest    1ee20ee487e2
 #
 # Docker Hub manifest digests (2026-08-14 push of these exact images,
-# streamed from the cpegasus docker daemon, not rebuilt):
+# streamed from the cpegasus docker daemon via save/load, not rebuilt).
+# Identical to the manifest digests above — proof the published images
+# are byte-for-byte the campaign's:
 # kthare10/eht-difmap@sha256:0d556c17541bf51b93f542f83bec66417aaf034691fa0d2ba9fcb68856ddeab8
 # kthare10/eht-ehtim@sha256:22b42b16a80217ac29a07fb09d7f418891a93d2171ab55e1fd56d4993e5694e0
 # kthare10/eht-smili@sha256:f12547a6db3ac3cafc992f9f050153242e81028dc323d15934bb213531d238c9
 # kthare10/eht-rex@sha256:1ee20ee487e2570a45779e457ede93f4d8153cc0d532d69d5b360abe03b7e8ec
+#
+# Classic image IDs (config-blob sha256, from the Hub manifests):
+# kthare10/eht-difmap config sha256:847f8224066eaa9efe81ffb5c23c216c7c5975b46a53c5da790207f744e3a14e
+# kthare10/eht-ehtim  config sha256:da8966d4d1c49785ff631388efba6fdcbd05d48b12445e7d1b8d03be239ae5f1
+# kthare10/eht-smili  config sha256:521b3369faa2f29b46ba8d5e3aff6a957d2493539a8cf9133fd260e668478f3d
+# kthare10/eht-rex    config sha256:e5ab3a847b4c5450aa6f987cf26875a82772556d297c4b45f08c2aac265cab0a
