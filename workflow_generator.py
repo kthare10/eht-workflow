@@ -17,6 +17,8 @@ CLAUDE.md). The workflow:
 3. Renders a per-day PNG panel of all reconstructed images
 4. Computes closure chi^2 statistics (cphase, logcamp) per image vs the data
 5. Aggregates everything into a CSV table and markdown report
+6. Measures ring diameter/width/orientation/asymmetry of every image with
+   REx (ehtim.features.rex, the EHT's own extractor) into ring_rex.csv
 
 Usage:
     ./workflow_generator.py --output workflow.yml

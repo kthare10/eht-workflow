@@ -9,7 +9,7 @@ N=${1:-5}
 SCRATCH_BASE="$PWD/scratch/cc/pegasus/eht-m87"
 
 # Stale scratch from old test runs holds ~1 GB of container copies each;
-# clear it up front so 5 fresh iterations fit on disk (approved 2026-08-13).
+# clear it up front so the fresh iterations fit on disk.
 for old in "$SCRATCH_BASE"/run000[1-8]; do
     [ -d "$old" ] && { echo "removing stale scratch: $old"; rm -rf "$old"; }
 done

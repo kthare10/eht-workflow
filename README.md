@@ -27,6 +27,8 @@ verbatim in `eht-pipelines/` (pinned commit — see
 `eht-pipelines/PROVENANCE.md`). Everything else (`bin/`, `Docker/`) is
 written for this project.
 
+![Workflow DAG](workflow.png)
+
 ## Prerequisites
 
 - Pegasus WMS + HTCondor (or a Kiso-provisioned site)
@@ -41,6 +43,10 @@ docker build -t kthare10/eht-rex:latest    -f Docker/Rex_Dockerfile .
 docker push kthare10/eht-difmap:latest kthare10/eht-ehtim:latest \
             kthare10/eht-smili:latest  kthare10/eht-rex:latest
 ```
+
+On a submit host without a Docker Hub login, `./deploy_pegasus.sh` instead
+converts locally built images to `.sif` files (`containers/`), generates the
+workflow with `--sif-dir`, and submits it.
 
 ## Usage
 
@@ -86,3 +92,11 @@ container digests are archived under `results5/`. Repeat it with
 
 `./run_manual.sh` runs fetch + eht-imaging + render + stats for one day
 without Pegasus (inside the ehtim container or a matching venv).
+
+## License
+
+Apache License 2.0 (see `LICENSE`) for everything written for this project
+(`workflow_generator.py`, `bin/`, `Docker/`, scripts, documentation).
+The vendored EHT pipeline files in `eht-pipelines/` are the EHT
+Collaboration's own and remain under **GPLv3** per their headers
+(see `eht-pipelines/PROVENANCE.md`).
