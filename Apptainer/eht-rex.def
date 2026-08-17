@@ -1,0 +1,68 @@
+# Ring-measurement (REx) container for the EHT M87 workflow.
+# Used by: measure_ring_rex.
+#
+# Runs ehtim.features.rex — the EHT's own image-domain ring extractor
+# (Paper IV §9.1–9.2) — on the reconstructed images. REx is image-domain
+# analysis only, so unlike the imaging container this does not need the
+# v1.1.0 era-pin or NFFT; it pins the versions used for the measurements
+# of record (COMPARISON.md §4.1): ehtim 1.3.2 with scipy < 1.14 because
+# REx uses the legacy scipy.interpolate.interp2d (pinning scipy keeps
+# the EHT code unmodified).
+#
+# Converted from Docker/Rex_Dockerfile. `Bootstrap: docker` pulls and converts
+# the OCI base image directly, so no Docker installation is needed to build the
+# .sif.
+#
+# Build:
+#   cd eht-workflow
+#   apptainer build Apptainer/eht-rex.sif Apptainer/eht-rex.def
+#
+# The filename matters: workflow_generator.py resolves each container as
+# <sif-dir>/eht-<name>.sif, and --sif-dir defaults to this directory.
+#
+# DOCKER -> APPTAINER GOTCHA: Docker's ENV applies at build time AND run time.
+# Apptainer's %environment applies at RUN time only. PIP_DEFAULT_TIMEOUT and
+# PIP_RETRIES exist purely to make the build's pip calls resilient, so they are
+# exported inside %post — putting them only in %environment would silently lose
+# the protection they were added for.
+
+Bootstrap: docker
+From: python:3.11-slim-bullseye
+
+%post
+    set -eu
+
+    # PegasusLite needs curl inside the container to fetch its worker package
+    apt-get update
+    apt-get install -y --no-install-recommends curl wget ca-certificates
+    rm -rf /var/lib/apt/lists/*
+
+    # ehtim pulls paramsurvey -> pandas-appender, a legacy setup.py package
+    # whose build fetches its own deps with a 15 s pip timeout; raise the
+    # timeout/retries so transient PyPI slowness doesn't kill the build.
+    export PIP_DEFAULT_TIMEOUT=100
+    export PIP_RETRIES=10
+
+    pip install --no-cache-dir \
+        "numpy==2.0.2" \
+        "scipy==1.13.1" \
+        "astropy==7.1.0" \
+        "matplotlib==3.9.2" \
+        "pandas==2.2.3" \
+        "setuptools-scm" "packaging>=20"
+
+    pip install --no-cache-dir "ehtim==1.3.2"
+
+    # Sanity check: REx must import and interp2d must exist
+    python -c "import ehtim.features.rex as rex; import scipy.interpolate as si; assert hasattr(si, 'interp2d'); print('REx OK')"
+
+%environment
+    export PYTHONUNBUFFERED=1
+    export MPLBACKEND=Agg
+
+%runscript
+    exec /bin/bash "$@"
+
+%labels
+    maintainer Komal Thareja <kthare10@renci.org>
+    description EHT M87 workflow - REx image-domain ring extraction (ehtim 1.3.2)

@@ -133,13 +133,22 @@ class EHTWorkflow:
         self.sc.add_sites(local, exec_site)
 
     def _container(self, name):
-        """Container from Docker Hub, or from a local .sif when --sif-dir
-        is given (for submit hosts without a Docker Hub login)."""
+        """Container from a local .sif (the default, built from Apptainer/
+        eht-<name>.def), or from Docker Hub when --sif-dir is cleared.
+
+        Pegasus stages the .sif like any other input file, so image_site is
+        "local" — the site where the file physically lives.
+        """
         if self.sif_dir:
+            sif = os.path.join(self.sif_dir, f"eht-{name}.sif")
+            if not os.path.exists(sif):
+                print(f"Warning: Apptainer image not found at {sif} — build it "
+                      f"first with: apptainer build {sif} "
+                      f"Apptainer/eht-{name}.def")
             return Container(
                 f"eht_{name}",
                 container_type=Container.SINGULARITY,
-                image="file://" + os.path.join(self.sif_dir, f"eht-{name}.sif"),
+                image="file://" + sif,
                 image_site="local",
             )
         return Container(
@@ -357,9 +366,12 @@ def main():
                         help="Skip the SMILI RML pipeline")
     parser.add_argument("--smili-nproc", type=int, default=4,
                         help="Parallel processes per SMILI job")
-    parser.add_argument("--sif-dir", default=None,
-                        help="Directory with local eht-{difmap,ehtim,smili}.sif "
-                             "images (instead of pulling from Docker Hub)")
+    parser.add_argument("--sif-dir", default="Apptainer",
+                        help="Directory holding the locally built "
+                             "eht-{difmap,ehtim,rex,smili}.sif images, absolute "
+                             "or relative to the workflow directory (default: "
+                             "Apptainer). Pass --sif-dir '' to fall back to "
+                             "pulling from Docker Hub instead.")
     parser.add_argument("--exec-site", default="condorpool",
                         help="Execution site name")
     parser.add_argument("--skip-sites-catalog", action="store_true",
@@ -372,6 +384,14 @@ def main():
         print("Error: all three pipelines are skipped — nothing to do")
         sys.exit(1)
 
+    # A relative --sif-dir resolves against the workflow directory, not the
+    # caller's CWD, so the default works from anywhere.
+    if args.sif_dir:
+        sif_dir = args.sif_dir if os.path.isabs(args.sif_dir) else os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), args.sif_dir)
+    else:
+        sif_dir = None
+
     workflow = EHTWorkflow(
         dagfile=args.output,
         days=args.days,
@@ -379,7 +399,7 @@ def main():
         skip_ehtim=args.skip_ehtim,
         skip_smili=args.skip_smili,
         smili_nproc=args.smili_nproc,
-        sif_dir=os.path.abspath(args.sif_dir) if args.sif_dir else None,
+        sif_dir=sif_dir,
     )
 
     checksums_path = os.path.join(workflow.wf_dir, "data/checksums.txt")

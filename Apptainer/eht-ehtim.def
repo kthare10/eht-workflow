@@ -1,0 +1,98 @@
+# eht-imaging (EHTIM) container for the EHT M87 workflow.
+# Used by: fetch_data, run_ehtim, render_images, compute_stats, aggregate_results.
+#
+# Pins eht-imaging to the v1.1.0 release referenced by the EHT's 2019-D01-02
+# pipeline (Zenodo 2614016), with a dependency set contemporary to it —
+# newer numpy/astropy break v1.1.0-era APIs.
+#
+# Converted from Docker/Ehtim_Dockerfile. `Bootstrap: docker` pulls and converts
+# the OCI base image directly, so no Docker installation is needed to build the
+# .sif.
+#
+# Build:
+#   cd eht-workflow
+#   apptainer build Apptainer/eht-ehtim.sif Apptainer/eht-ehtim.def
+#
+# The filename matters: workflow_generator.py resolves each container as
+# <sif-dir>/eht-<name>.sif, and --sif-dir defaults to this directory.
+#
+# NOTE: if the v1.1.0 tag fails to install or run under Python 3.8, the
+# fallback is the oldest ehtim release that works (document the version in
+# COMPARISON.md — SPEC.md N3 allows library-version differences).
+#
+# Docker's ARG has no Apptainer equivalent; EHTIM_REF is a plain shell variable
+# in %post.
+
+Bootstrap: docker
+From: python:3.8-slim-bullseye
+
+%post
+    set -eu
+
+    # Replaces the Dockerfile's `ARG EHTIM_REF=v1.1.0`.
+    EHTIM_REF=v1.1.0
+
+    # curl + wget are mandatory: PegasusLite downloads its worker package inside
+    # the container before the job script runs.
+    apt-get update
+    apt-get install -y --no-install-recommends \
+        git build-essential curl wget ca-certificates \
+        libfftw3-dev pkg-config
+    rm -rf /var/lib/apt/lists/*
+
+    # NFFT 3.2.4 from source: pynfft 1.3.2 needs nfft3util.h, which NFFT >= 3.3
+    # (and thus Debian's libnfft3-dev) no longer ships. --enable-openmp builds
+    # the libnfft3_threads that pynfft links against.
+    curl -fsSL https://github.com/NFFT/nfft/releases/download/3.2.4/nfft-3.2.4.tar.gz \
+        -o /tmp/nfft.tar.gz || \
+    curl -fsSL https://www-user.tu-chemnitz.de/~potts/nfft/download/nfft-3.2.4.tar.gz \
+        -o /tmp/nfft.tar.gz
+    tar xzf /tmp/nfft.tar.gz -C /opt
+    cd /opt/nfft-3.2.4
+    ./configure --enable-openmp
+    make -j"$(nproc)"
+    make install
+    ldconfig
+    rm /tmp/nfft.tar.gz
+    cd /
+
+    pip install --no-cache-dir \
+        numpy==1.21.6 \
+        scipy==1.5.4 \
+        matplotlib==3.5.3 \
+        astropy==4.3.1 \
+        pandas==1.3.5 \
+        h5py==3.7.0 \
+        ephem==4.1.4 \
+        scikit-image==0.19.3 \
+        ipython==8.12.2 \
+        future \
+        requests
+
+    # The EHT eht-imaging pipeline hard-codes ttype='nfft', so pynfft is
+    # required (built against the nfft3/fftw3 libraries above).
+    pip install --no-cache-dir "cython<3.0"
+    pip install --no-cache-dir --no-build-isolation pynfft==1.3.2
+
+    pip install --no-cache-dir \
+        "git+https://github.com/achael/eht-imaging.git@${EHTIM_REF}"
+
+    # ehtim v1.1.0 ships residual Python-2 print statements (e.g. parloop.py);
+    # fix them mechanically with stdlib 2to3, then verify the package compiles.
+    2to3 -f print -f except -f raise -f exec -f ne -f numliterals -f repr -w -n \
+        /usr/local/lib/python3.8/site-packages/ehtim > /dev/null 2>&1
+    python -m compileall -q /usr/local/lib/python3.8/site-packages/ehtim
+
+    # Sanity check (must import cleanly AND have working NFFT)
+    python -c "import pynfft; import ehtim; print(ehtim.__file__)"
+
+%environment
+    export PYTHONUNBUFFERED=1
+    export MPLBACKEND=Agg
+
+%runscript
+    exec /bin/bash "$@"
+
+%labels
+    maintainer Komal Thareja <kthare10@renci.org>
+    description EHT M87 workflow - eht-imaging v1.1.0 with NFFT support
