@@ -85,10 +85,14 @@ Anything produced by the Patel et al. reproducibility study:
   `eventhorizontelescope/2019-D01-02`.
 - **C3**: Be expressed as a Pegasus workflow (`workflow_generator.py` using
   `Pegasus.api`), following this repository's standard layout
-  (`bin/`, `Docker/`, `README.md`).
-- **C4**: Each pipeline runs in a container **we build ourselves** (Dockerfiles
-  in `Docker/`), with all dependencies pinned and documented. Images published
-  under the `kthare10` Docker Hub registry.
+  (`bin/`, `Apptainer/`, `README.md`).
+- **C4**: Each pipeline runs in a container **we build ourselves** (definition
+  files in `Apptainer/`), with all dependencies pinned and documented. Images are
+  built locally to `Apptainer/eht-<name>.sif` and staged by Pegasus
+  (`image_site="local"`), so no registry publication is required; the `Docker/`
+  files and the `kthare10` Docker Hub images remain as a fallback. Because a
+  `.sif` carries one architecture only, images MUST be built on a host matching
+  the worker nodes.
 - **C5**: Validate input data integrity: record and check checksums (e.g.,
   md5/sha256) of every input file downloaded from CyVerse, so the run is
   verifiable and repeatable.
@@ -166,7 +170,8 @@ eht-workflow/
 ├── CLAUDE.md                # clean-room rules for AI assistance
 ├── workflow_generator.py    # Pegasus DAG generator
 ├── bin/                     # fetch, checksum, run-pipeline, post-process, stats scripts (ours)
-├── Docker/                  # Dockerfile.difmap, Dockerfile.ehtim, Dockerfile.smili (ours)
+├── Apptainer/               # eht-difmap.def, eht-ehtim.def, eht-rex.def, eht-smili.def (ours)
+├── Docker/                  # legacy Dockerfiles, retained as a fallback (ours)
 ├── data/checksums.txt       # recorded input checksums
 ├── README.md                # how to run
 └── COMPARISON.md            # written last (§7)

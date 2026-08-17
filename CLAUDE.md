@@ -42,8 +42,10 @@ generic public infrastructure (PyPI, conda-forge, base images, Pegasus/HTCondor)
 - Pipelines run the EHT's own driver scripts and fiducial parameters from
   `eventhorizontelescope/2019-D01-02`; everything else (fetch, checksum,
   post-processing, stats, figures) is written by us in `bin/`.
-- Containers are built by us from `Docker/` and published under the
-  `kthare10` Docker Hub registry — never pull the forbidden containers above.
+- Containers are built by us from `Apptainer/eht-*.def` into local `.sif` files
+  that Pegasus stages (`--sif-dir`, default `Apptainer/`). The `Docker/` files
+  and the `kthare10` Docker Hub images remain as a fallback. Never pull the
+  forbidden containers above.
 - Record checksums for every downloaded input in `data/checksums.txt`.
 - Write `COMPARISON.md` last, only after validation criteria V1–V6 in SPEC.md
   are evaluated.

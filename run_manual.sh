@@ -1,7 +1,9 @@
 #!/bin/bash
 # Manual smoke test: run the pipeline steps for one day (April 11 = 101)
 # without Pegasus. Run inside the ehtim container:
-#   docker run --rm -v "$PWD":/work -w /work kthare10/eht-ehtim:latest ./run_manual.sh
+#   apptainer exec --bind "$PWD":/work --pwd /work \
+#       Apptainer/eht-ehtim.sif ./run_manual.sh
+# (build it first: apptainer build Apptainer/eht-ehtim.sif Apptainer/eht-ehtim.def)
 set -e
 
 WORK=manual_test

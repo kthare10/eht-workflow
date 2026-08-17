@@ -1,0 +1,81 @@
+# DIFMAP container for the EHT M87 workflow (CLEAN imaging pipeline).
+# Builds Caltech DIFMAP from source (SPEC.md allowed source §2).
+#
+# Converted from Docker/Difmap_Dockerfile. `Bootstrap: docker` pulls and converts
+# the OCI base image directly, so no Docker installation is needed to build the
+# .sif.
+#
+# Build:
+#   cd eht-workflow
+#   apptainer build Apptainer/eht-difmap.sif Apptainer/eht-difmap.def
+#
+# The filename matters: workflow_generator.py resolves each container as
+# <sif-dir>/eht-<name>.sif, and --sif-dir defaults to this directory.
+#
+# NOTE: the tarball is only served over ftp:// (the HTTPS mirror 404s).
+# Check ftp://ftp.astro.caltech.edu/pub/difmap/ for the current version
+# letter (EHT requires >= 2.5b) and bump DIFMAP_VERSION below if the download
+# fails. 2.5r verified present on 2026-08-12.
+#
+# DOCKER -> APPTAINER GOTCHA: Docker's ENV applies at build time AND run time.
+# Apptainer's %environment applies at RUN time only — it is not sourced during
+# %post. PGPLOT_DIR/PGPLOT_FONT are needed by ./configure and ./makeall at build
+# time as well as by difmap at run time, so they are set in BOTH sections below.
+# The same applies to Docker's ARG, which has no Apptainer equivalent: the
+# version is a plain shell variable in %post.
+
+Bootstrap: docker
+From: ubuntu:22.04
+
+%post
+    set -eu
+
+    export DEBIAN_FRONTEND=noninteractive
+
+    # Replaces the Dockerfile's `ARG DIFMAP_VERSION=2.5r`.
+    DIFMAP_VERSION=2.5r
+
+    # pgplot5 (multiverse) provides the libpgplot/libcpgplot that difmap links.
+    # curl is also what PegasusLite uses to fetch its worker package inside the
+    # container before the job script runs.
+    apt-get update
+    apt-get install -y --no-install-recommends \
+        build-essential gfortran \
+        libx11-dev libncurses-dev \
+        expect curl wget ca-certificates \
+        python3
+    apt-get install -y --no-install-recommends pgplot5 || \
+        (sed -i "s/ universe/ universe multiverse/g" /etc/apt/sources.list && \
+         apt-get update && \
+         apt-get install -y --no-install-recommends pgplot5)
+    rm -rf /var/lib/apt/lists/*
+    ln -sf /usr/bin/python3 /usr/bin/python
+
+    # Needed by ./configure and ./makeall below, and re-declared in
+    # %environment for run time.
+    export PGPLOT_DIR=/usr/lib/pgplot5
+    export PGPLOT_FONT=/usr/lib/pgplot5/grfont.dat
+
+    curl -fsSL "ftp://ftp.astro.caltech.edu/pub/difmap/difmap${DIFMAP_VERSION}.tar.gz" \
+        -o /tmp/difmap.tar.gz
+    tar -xzf /tmp/difmap.tar.gz -C /opt
+    cd /opt/uvf_difmap*
+    ./configure linux-i486-gcc
+    ./makeall
+    cp difmap /usr/local/bin/difmap
+    rm /tmp/difmap.tar.gz
+
+    # Sanity check: difmap starts and exits
+    printf 'exit\n\n' | difmap || true
+
+%environment
+    export PYTHONUNBUFFERED=1
+    export PGPLOT_DIR=/usr/lib/pgplot5
+    export PGPLOT_FONT=/usr/lib/pgplot5/grfont.dat
+
+%runscript
+    exec /bin/bash "$@"
+
+%labels
+    maintainer Komal Thareja <kthare10@renci.org>
+    description EHT M87 workflow - Caltech DIFMAP CLEAN imaging

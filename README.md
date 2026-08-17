@@ -32,21 +32,29 @@ written for this project.
 ## Prerequisites
 
 - Pegasus WMS + HTCondor (or a Kiso-provisioned site)
-- Singularity/Apptainer on the worker nodes (pulls Docker images)
-- Containers (build once, push to Docker Hub):
+- Apptainer on the submit host (to build) and on the worker nodes (to run)
+- Containers (build once; no registry push, Pegasus stages the `.sif` files):
 
 ```sh
-docker build -t kthare10/eht-difmap:latest -f Docker/Difmap_Dockerfile .
-docker build -t kthare10/eht-ehtim:latest  -f Docker/Ehtim_Dockerfile .
-docker build -t kthare10/eht-smili:latest  -f Docker/Smili_Dockerfile .
-docker build -t kthare10/eht-rex:latest    -f Docker/Rex_Dockerfile .
-docker push kthare10/eht-difmap:latest kthare10/eht-ehtim:latest \
-            kthare10/eht-smili:latest  kthare10/eht-rex:latest
+apptainer build Apptainer/eht-difmap.sif Apptainer/eht-difmap.def
+apptainer build Apptainer/eht-ehtim.sif  Apptainer/eht-ehtim.def
+apptainer build Apptainer/eht-smili.sif  Apptainer/eht-smili.def
+apptainer build Apptainer/eht-rex.sif    Apptainer/eht-rex.def
 ```
 
-On a submit host without a Docker Hub login, `./deploy_pegasus.sh` instead
-converts locally built images to `.sif` files (`containers/`), generates the
-workflow with `--sif-dir`, and submits it.
+`workflow_generator.py` resolves each container as `<sif-dir>/eht-<name>.sif`,
+and `--sif-dir` defaults to `Apptainer/` — so the filenames above matter. Pass
+`--sif-dir ''` to fall back to pulling `docker://kthare10/eht-*:latest` from
+Docker Hub instead.
+
+`./deploy_pegasus.sh` does the whole sequence: builds any missing `.sif`,
+generates the workflow, plans and submits.
+
+**Apptainer cannot build on macOS**, and a `.sif` has no multi-arch manifest —
+one file, one architecture. `eht-smili` and `eht-ehtim` in particular compile
+NFFT and SMILI from source, so build them on a Linux host matching the worker
+nodes. See `../APPTAINER.md`. The legacy `Docker/*_Dockerfile` files are kept as
+a fallback.
 
 ## Usage
 
