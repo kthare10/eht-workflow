@@ -7,7 +7,7 @@
 #
 # Must run on a Linux host whose architecture matches the worker nodes: Apptainer
 # cannot build on macOS, and a .sif has no multi-arch manifest. See
-# ../APPTAINER.md.
+# APPTAINER.md.
 set -e
 
 cd "$(dirname "$0")"

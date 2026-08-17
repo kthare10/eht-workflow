@@ -24,7 +24,7 @@ fetch_data (2019-D01-01 uvfits + SHA-256 verification)
 
 The three imaging jobs run the EHT's own fiducial driver scripts, vendored
 verbatim in `eht-pipelines/` (pinned commit — see
-`eht-pipelines/PROVENANCE.md`). Everything else (`bin/`, `Docker/`) is
+`eht-pipelines/PROVENANCE.md`). Everything else (`bin/`, `Apptainer/`) is
 written for this project.
 
 ![Workflow DAG](workflow.png)
@@ -53,8 +53,49 @@ generates the workflow, plans and submits.
 **Apptainer cannot build on macOS**, and a `.sif` has no multi-arch manifest —
 one file, one architecture. `eht-smili` and `eht-ehtim` in particular compile
 NFFT and SMILI from source, so build them on a Linux host matching the worker
-nodes. See `../APPTAINER.md`. The legacy `Docker/*_Dockerfile` files are kept as
-a fallback.
+nodes. See [`APPTAINER.md`](APPTAINER.md). The legacy `Docker/*_Dockerfile`
+files are kept as a fallback.
+
+<details>
+<summary>Optional: publish the image to ghcr.io</summary>
+
+Useful for sharing one build across a team or citing an immutable artifact. Needs a
+GitHub token with `write:packages`.
+
+```bash
+echo "$GHCR_TOKEN" | apptainer registry login --username <github-user> \
+    --password-stdin oras://ghcr.io
+
+TAG=$(git rev-parse --short HEAD)
+apptainer push Apptainer/eht-difmap.sif \
+    oras://ghcr.io/kthare10/eht-workflow-eht-difmap:$TAG
+apptainer push Apptainer/eht-ehtim.sif \
+    oras://ghcr.io/kthare10/eht-workflow-eht-ehtim:$TAG
+apptainer push Apptainer/eht-rex.sif \
+    oras://ghcr.io/kthare10/eht-workflow-eht-rex:$TAG
+apptainer push Apptainer/eht-smili.sif \
+    oras://ghcr.io/kthare10/eht-workflow-eht-smili:$TAG
+
+# On the submit host, pull back to the path the generator expects
+apptainer pull Apptainer/eht-difmap.sif \
+    oras://ghcr.io/kthare10/eht-workflow-eht-difmap:$TAG
+apptainer pull Apptainer/eht-ehtim.sif \
+    oras://ghcr.io/kthare10/eht-workflow-eht-ehtim:$TAG
+apptainer pull Apptainer/eht-rex.sif \
+    oras://ghcr.io/kthare10/eht-workflow-eht-rex:$TAG
+apptainer pull Apptainer/eht-smili.sif \
+    oras://ghcr.io/kthare10/eht-workflow-eht-smili:$TAG
+```
+
+Four images, four package names. The pull filenames matter — the generator
+resolves `<sif-dir>/eht-<name>.sif`.
+
+Do **not** put the `oras://` URL in the transformation catalog — Pegasus supports
+`docker://`, `shub://`, `library://`, `shifter://` and `file://`, not `oras://`.
+Treat ghcr.io as a distribution channel and keep staging the local `.sif`. Details in
+[`APPTAINER.md`](APPTAINER.md).
+
+</details>
 
 ## Usage
 
@@ -104,7 +145,7 @@ without Pegasus (inside the ehtim container or a matching venv).
 ## License
 
 Apache License 2.0 (see `LICENSE`) for everything written for this project
-(`workflow_generator.py`, `bin/`, `Docker/`, scripts, documentation).
+(`workflow_generator.py`, `bin/`, `Apptainer/`, `Docker/`, scripts, documentation).
 The vendored EHT pipeline files in `eht-pipelines/` are the EHT
 Collaboration's own and remain under **GPLv3** per their headers — the
 full GPLv3 text is included at `eht-pipelines/LICENSE` as its terms
