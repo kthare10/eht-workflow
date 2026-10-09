@@ -22,13 +22,22 @@ for name in ehtim difmap smili rex; do
     fi
 done
 
+# Execution site: condorpool (Pegasus's built-in HTCondor site) on a plain pool
+# with no site catalog; set EXEC_SITE=compute and pass -s <catalog>.yml (or set
+# one in ~/.pegasusrc) for a hosted site catalog.
+EXEC_SITE=${EXEC_SITE:-condorpool}
+
 echo "=== Generating workflow ==="
 # --sif-dir already defaults to Apptainer/, but pass it explicitly so this
 # script keeps working if that default ever changes.
 python3 workflow_generator.py \
     --sif-dir "$PWD/Apptainer" \
     --smili-nproc 2 \
+    -e "$EXEC_SITE" \
     --output workflow.yml "$@"
 
 echo "=== Planning and submitting ==="
-pegasus-plan --submit -s condorpool -o local workflow.yml
+# The generator writes no site catalog; --output-dir keeps the staged
+# outputs in output/ (Pegasus's default local site would use wf-output/).
+pegasus-plan --dir submit -s "$EXEC_SITE" -o local --output-dir "$PWD/output" \
+    --submit workflow.yml

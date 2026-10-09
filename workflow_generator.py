@@ -23,6 +23,13 @@ CLAUDE.md). The workflow:
 Usage:
     ./workflow_generator.py --output workflow.yml
     ./workflow_generator.py --days 101 --skip-smili --output workflow.yml
+    ./workflow_generator.py -e condorpool        # plain HTCondor pool, no site catalog
+    ./workflow_generator.py -s unity.yml         # hosted site catalog
+
+Sites follow pegasus-isi/pegasus-gromacs: jobs run on a site named "compute",
+defined by a centrally hosted site catalog (-s FILE, or one in ~/.pegasusrc).
+The generator writes the workflow and catalogs but no site catalog, and never
+plans or submits — it prints the pegasus-plan command.
 """
 
 import argparse
@@ -107,11 +114,58 @@ class EHTWorkflow:
         self.tc.write()
         self.wf.write(file=self.dagfile)
 
-    def create_pegasus_properties(self):
+    # ------------------------------------------------------------------
+    # Plan / run / monitor (thin wrappers over the Pegasus API Workflow
+    # object, for interactive use e.g. from a Jupyter notebook)
+    # ------------------------------------------------------------------
+    def plan_submit(self, exec_site_name="compute", raise_errors=False):
+        try:
+            self.wf.plan(
+                dir="submit",
+                sites=[exec_site_name],
+                output_sites=["local"],
+                cleanup="none",
+                verbose=1,
+                submit=True,
+            )
+        except PegasusClientError as e:
+            print(e)
+            if raise_errors:
+                raise
+
+    def status(self):
+        try:
+            self.wf.status(long=True)
+        except PegasusClientError as e:
+            print(e)
+
+    def wait(self):
+        try:
+            self.wf.wait()
+        except PegasusClientError as e:
+            print(e)
+
+    def statistics(self):
+        try:
+            self.wf.statistics()
+        except PegasusClientError as e:
+            print(e)
+
+    def create_pegasus_properties(self, hosted_site_catalog=None):
         self.props = Properties()
         self.props["pegasus.transfer.threads"] = "16"
+        if hosted_site_catalog:
+            # Use one of Pegasus' centrally hosted site catalogs instead of
+            # a locally generated one. pegasus-plan downloads and caches the
+            # named file from the catalog repository at plan time.
+            # https://pegasus.isi.edu/documentation/reference-guide/catalogs.html#centrally-hosted-site-catalogs
+            self.props["pegasus.catalog.site.repo.file"] = hosted_site_catalog
 
-    def create_sites_catalog(self, exec_site_name="condorpool"):
+    # Not used by the CLI — pegasus-plan resolves the site catalog from a
+    # centrally hosted one instead (see -s/--hosted-site-catalog). Kept for
+    # notebook use, when a self-contained, locally generated HTCondor site
+    # catalog is wanted.
+    def create_sites_catalog(self, exec_site_name="compute"):
         self.sc = SiteCatalog()
         local = Site("local").add_directories(
             Directory(
@@ -158,7 +212,7 @@ class EHTWorkflow:
             image_site="docker_hub",
         )
 
-    def create_transformation_catalog(self, exec_site_name="condorpool"):
+    def create_transformation_catalog(self, exec_site_name="compute"):
         self.tc = TransformationCatalog()
 
         difmap_container = self._container("difmap")
@@ -372,11 +426,21 @@ def main():
                              "or relative to the workflow directory (default: "
                              "Apptainer). Pass --sif-dir '' to fall back to "
                              "pulling from Docker Hub instead.")
-    parser.add_argument("--exec-site", default="condorpool",
-                        help="Execution site name")
-    parser.add_argument("--skip-sites-catalog", action="store_true",
-                        help="Do not generate a site catalog")
-    parser.add_argument("--output", default="workflow.yml",
+    parser.add_argument("-s", "--hosted-site-catalog", metavar="FILE",
+                        default=None,
+                        help="Name of a Pegasus centrally hosted site catalog "
+                             "to plan against (e.g. access-pegasus.yml), "
+                             "instead of a locally generated one. Sets "
+                             "pegasus.catalog.site.repo.file; see "
+                             "https://pegasus.isi.edu/documentation/"
+                             "reference-guide/catalogs.html"
+                             "#centrally-hosted-site-catalogs")
+    parser.add_argument("-e", "--execution-site-name", metavar="STR",
+                        default="compute",
+                        help="Execution site name (default: compute). Use "
+                             "condorpool on a plain HTCondor pool with no "
+                             "site catalog")
+    parser.add_argument("-o", "--output", default="workflow.yml",
                         help="Output workflow YAML file")
     args = parser.parse_args()
 
@@ -413,17 +477,23 @@ def main():
             print(f"Error: vendored EHT pipeline file missing: {path}")
             sys.exit(1)
 
-    if not args.skip_sites_catalog:
-        os.makedirs(workflow.shared_scratch_dir, exist_ok=True)
-        os.makedirs(workflow.local_storage_dir, exist_ok=True)
-        workflow.create_sites_catalog(args.exec_site)
-    workflow.create_pegasus_properties()
-    workflow.create_transformation_catalog(args.exec_site)
+    logger.info(f"Execution site: {args.execution_site_name}")
+    logger.info("Hosted site catalog: "
+                f"{args.hosted_site_catalog or '(none — supply your own site catalog)'}")
+
+    workflow.create_pegasus_properties(
+        hosted_site_catalog=args.hosted_site_catalog)
+    workflow.create_transformation_catalog(args.execution_site_name)
     workflow.create_replica_catalog()
     workflow.create_workflow()
     workflow.write()
     logger.info(f"Workflow written to {args.output} "
                 f"(days: {', '.join(workflow.days)})")
+    # --output-dir keeps outputs in output/: the CLI writes no local site,
+    # and Pegasus's default one would stage them to wf-output/ instead.
+    logger.info(f"Plan and submit: pegasus-plan --dir submit "
+                f"-s {args.execution_site_name} -o local "
+                f"--output-dir {workflow.local_storage_dir} --submit {args.output}")
 
 
 if __name__ == "__main__":
