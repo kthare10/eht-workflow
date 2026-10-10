@@ -18,7 +18,9 @@ for i in $(seq 1 "$N"); do
     echo "=== Iteration $i/$N: planning + submitting ==="
     rm -rf output && mkdir -p output
     plan_log=$(mktemp)
-    pegasus-plan --submit -s condorpool -o local workflow.yml | tee "$plan_log"
+    # workflow.yml must have been generated for this site (-e "${EXEC_SITE:-condorpool}")
+    pegasus-plan --dir submit -s "${EXEC_SITE:-condorpool}" -o local \
+        --output-dir "$PWD/output" --submit workflow.yml | tee "$plan_log"
     rundir=$(grep -oE '/home/[^ ]*/eht-m87/run[0-9]+' "$plan_log" | head -1)
     rm -f "$plan_log"
     if [ -z "$rundir" ]; then

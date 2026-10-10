@@ -48,7 +48,8 @@ and `--sif-dir` defaults to `Apptainer/` — so the filenames above matter. Pass
 Docker Hub instead.
 
 `./deploy_pegasus.sh` does the whole sequence: builds any missing `.sif`,
-generates the workflow, plans and submits.
+generates the workflow for `condorpool` (override with `EXEC_SITE=...`), then
+runs `pegasus-plan --submit` itself.
 
 **Apptainer cannot build on macOS**, and a `.sif` has no multi-arch manifest —
 one file, one architecture. `eht-smili` and `eht-ehtim` in particular compile
@@ -103,16 +104,44 @@ Treat ghcr.io as a distribution channel and keep staging the local `.sif`. Detai
 # Generate the DAG (all 4 days, all 3 pipelines + ring measurement: 31 jobs)
 python3 workflow_generator.py --output workflow.yml
 
-# Smaller test: one day, no SMILI
-python3 workflow_generator.py --days 101 --skip-smili --output workflow.yml
+# Smaller test: one day, no SMILI, on a plain HTCondor pool with no site catalog
+python3 workflow_generator.py --days 101 --skip-smili -e condorpool --output workflow.yml
 
-# Submit and monitor
-pegasus-plan --submit -s condorpool -o local workflow.yml
+# The generator never plans or submits; it prints this command
+pegasus-plan --dir submit -s condorpool -o local --output-dir "$PWD/output" --submit workflow.yml
 pegasus-status <run-dir>
 ```
 
 Options: `--days {095,096,100,101}`, `--skip-difmap`, `--skip-ehtim`,
-`--skip-smili`, `--smili-nproc N`, `--exec-site NAME`, `--skip-sites-catalog`.
+`--skip-smili`, `--smili-nproc N`, `--sif-dir DIR`, `-o/--output FILE`, and the
+site options below.
+
+### Sites
+
+Following [pegasus-gromacs](https://github.com/pegasus-isi/pegasus-gromacs),
+jobs run on a site named `compute`, and the generator writes no site catalog —
+where jobs run depends on your resource and allocation:
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `-s`, `--hosted-site-catalog` | (none; `~/.pegasusrc` if set) | [Hosted site catalog](https://github.com/pegasushub/pegasus-site-catalogs/tree/main/conf) to plan against, e.g. `access-pegasus.yml`, `unity.yml` |
+| `-e`, `--execution-site-name` | `compute` | Execution site name; `condorpool` on a plain HTCondor pool with no site catalog |
+
+Without `-s`, `pegasus-plan` uses the catalog named in `~/.pegasusrc`
+(`pegasus.catalog.site.repo.file`). On a plain HTCondor pool with no catalog,
+generate with `-e condorpool`: Pegasus builds a default `condorpool` site
+itself. Pass `--output-dir` to `pegasus-plan` to choose where outputs land;
+otherwise Pegasus's default local site puts them in `wf-output/` next to the
+submit directory.
+
+The notebook [`EHT-M87-Workflow.ipynb`](EHT-M87-Workflow.ipynb) drives the same
+`EHTWorkflow` class interactively — generate, view the DAG, plan and submit
+(an explicit cell; `create_sites_catalog()` writes a local HTCondor `compute`
+site for it), monitor, and look at the images:
+
+```sh
+jupyter lab EHT-M87-Workflow.ipynb
+```
 
 ## Outputs (in `output/`)
 
