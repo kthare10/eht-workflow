@@ -32,6 +32,12 @@ From: ubuntu:22.04
 
     export DEBIAN_FRONTEND=noninteractive
 
+    # Unprivileged builds (a single uid mapped, as in Pegasus AI Studio's pods)
+    # cannot let apt drop privileges to _apt: its http method dies with
+    # "setgroups 65534 failed - Operation not permitted" and apt-get update
+    # exits 100. Keep apt as root for the build.
+    echo "APT::Sandbox::User \"root\";" > /etc/apt/apt.conf.d/00-no-sandbox
+
     # Replaces the Dockerfile's `ARG DIFMAP_VERSION=2.5r`.
     DIFMAP_VERSION=2.5r
 
