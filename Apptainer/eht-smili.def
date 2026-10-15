@@ -42,6 +42,11 @@ From: python:3.8-bullseye
         -e "/bullseye-updates/d" \
         /etc/apt/sources.list
     echo "Acquire::Check-Valid-Until \"false\";" > /etc/apt/apt.conf.d/99no-check-valid-until
+    # Unprivileged builds (a single uid mapped, as in Pegasus AI Studio's pods)
+    # cannot let apt drop privileges to _apt: its http method dies with
+    # "setgroups 65534 failed - Operation not permitted" and apt-get update
+    # exits 100. Keep apt as root for the build.
+    echo "APT::Sandbox::User \"root\";" > /etc/apt/apt.conf.d/00-no-sandbox
 
     # Replace the Dockerfile's `ARG EHTIM_REF` / `ARG SMILI_REF`.
     EHTIM_REF=v1.1.0
