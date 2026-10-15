@@ -56,14 +56,19 @@ From: ubuntu:22.04
     export PGPLOT_DIR=/usr/lib/pgplot5
     export PGPLOT_FONT=/usr/lib/pgplot5/grfont.dat
 
+    # Downloads go under /opt/src, inside the image. Apptainer binds the
+    # host's /tmp into %post, so two builds running at once (ehtim and smili
+    # both fetch nfft) would share /tmp/nfft.tar.gz and one would delete the
+    # other's file mid-extract, as happened on 2026-10-15.
+    mkdir -p /opt/src
     curl -fsSL "ftp://ftp.astro.caltech.edu/pub/difmap/difmap${DIFMAP_VERSION}.tar.gz" \
-        -o /tmp/difmap.tar.gz
-    tar --no-same-owner --no-same-permissions -xzf /tmp/difmap.tar.gz -C /opt
+        -o /opt/src/difmap.tar.gz
+    tar --no-same-owner --no-same-permissions -xzf /opt/src/difmap.tar.gz -C /opt
     cd /opt/uvf_difmap*
     ./configure linux-i486-gcc
     ./makeall
     cp difmap /usr/local/bin/difmap
-    rm /tmp/difmap.tar.gz
+    rm /opt/src/difmap.tar.gz
 
     # Sanity check: difmap starts and exits
     printf 'exit\n\n' | difmap || true
