@@ -58,7 +58,7 @@ From: ubuntu:22.04
 
     curl -fsSL "ftp://ftp.astro.caltech.edu/pub/difmap/difmap${DIFMAP_VERSION}.tar.gz" \
         -o /tmp/difmap.tar.gz
-    tar -xzf /tmp/difmap.tar.gz -C /opt
+    tar --no-same-owner --no-same-permissions -xzf /tmp/difmap.tar.gz -C /opt
     cd /opt/uvf_difmap*
     ./configure linux-i486-gcc
     ./makeall

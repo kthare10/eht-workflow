@@ -62,7 +62,7 @@ From: python:3.8-bullseye
         -o /tmp/nfft.tar.gz || \
     curl -fsSL https://www-user.tu-chemnitz.de/~potts/nfft/download/nfft-3.2.4.tar.gz \
         -o /tmp/nfft.tar.gz
-    tar xzf /tmp/nfft.tar.gz -C /opt
+    tar --no-same-owner --no-same-permissions -xzf /tmp/nfft.tar.gz -C /opt
     cd /opt/nfft-3.2.4
     ./configure --enable-openmp
     make -j"$(nproc)"
