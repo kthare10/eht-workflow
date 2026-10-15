@@ -61,17 +61,22 @@ From: python:3.8-slim-bullseye
     # NFFT 3.2.4 from source: pynfft 1.3.2 needs nfft3util.h, which NFFT >= 3.3
     # (and thus Debian's libnfft3-dev) no longer ships. --enable-openmp builds
     # the libnfft3_threads that pynfft links against.
+    # Downloads go under /opt/src, inside the image. Apptainer binds the
+    # host's /tmp into %post, so two builds running at once (ehtim and smili
+    # both fetch nfft) would share /tmp/nfft.tar.gz and one would delete the
+    # other's file mid-extract, as happened on 2026-10-15.
+    mkdir -p /opt/src
     curl -fsSL https://github.com/NFFT/nfft/releases/download/3.2.4/nfft-3.2.4.tar.gz \
-        -o /tmp/nfft.tar.gz || \
+        -o /opt/src/nfft.tar.gz || \
     curl -fsSL https://www-user.tu-chemnitz.de/~potts/nfft/download/nfft-3.2.4.tar.gz \
-        -o /tmp/nfft.tar.gz
-    tar --no-same-owner --no-same-permissions -xzf /tmp/nfft.tar.gz -C /opt
+        -o /opt/src/nfft.tar.gz
+    tar --no-same-owner --no-same-permissions -xzf /opt/src/nfft.tar.gz -C /opt
     cd /opt/nfft-3.2.4
     ./configure --enable-openmp
     make -j"$(nproc)"
     make install
     ldconfig
-    rm /tmp/nfft.tar.gz
+    rm /opt/src/nfft.tar.gz
     cd /
 
     pip install --no-cache-dir \
